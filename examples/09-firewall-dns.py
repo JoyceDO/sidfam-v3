@@ -1,4 +1,9 @@
 #
+import sys
+import os
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = os.path.split(curPath)[0]
+sys.path.append(rootPath)
 from sidfam import Automaton, AutoGroup
 from sidfam.gallery import from_dataset, _from_dataset_topo, print_time
 from sidfam.language import any_ip, Variable, no_guard, no_update, \
@@ -233,10 +238,10 @@ print_time('finish spliting problem: ')
 # 在最终解决问题之前，将带宽资源情况传入模型（换言之，带宽资源可以一直到这个时候再确定下来）
 bandwidth.map = bandwidth_resource
 # 最后解决问题，其实是一个一个地尝试解决小问题
-rule = splited.solve()
+rule = splited.solve(save=True)
 
 print_time('problem solved: ')
 
 # 解决完以后，可以把得到的结果打印出来进行观察。切勿在除了风筝以外的拓扑上执行这行代码
 # 换句话说，我其实根本不知道在复杂拓扑上求解的结果到底对不对
-# print(rule)
+print(rule)
