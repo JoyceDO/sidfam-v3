@@ -47,14 +47,14 @@ cdef Model create_model(
     
     #4.12 new add----------------------------------------------------------------------------------
     #对于所有需识别其他字段的packet class的流，确保其路径是从所有首先经过P4交换机的路径中选出来的
-    cdef vector[unordered_map[ #packet class
+    cdef unordered_map[ #packet class
         int,
         vector[pair[int,int]],#path graph & path
-    ]] recognise
-    recognise.resize(packet_class_count)
+    ] recognise
+    #recognise.resize(packet_class_count)
     #-----------------------------------------------------------------------------------------------            
 
-    cdef int i, path_index, j, node_index, previous_node_index, k
+    cdef int i, path_index, j, node_index, previous_node_index, k, w
     cdef int res_index
     cdef float need
     cdef int current_hop, guard, update, next_hop, req
@@ -160,20 +160,22 @@ cdef Model create_model(
 
                     res_index += 1
            #4.12 new add----------------------------------------------------------         
-           for j in range (1,path_length):
-                previous_node_index = path.at(j - 1)
-                node_index = path.at(j)
+            for w in range (1,path_length):
+                previous_node_index = path.at(w - 1)
+                node_index = path.at(w)
                 current_hop = graph.node_list.at(previous_node_index).next_hop
                 guard = graph.node_list.at(node_index).guard
                 update = graph.node_list.at(node_index).update
                 #这里将风筝拓扑中的交换机B写死为P4交换机
                 if current_hop==2:
+                    print('jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj')
+                    print(graph.node_list.at(node_index).next_hop)
                     recognise[packet_class].push_back(dist_var)
                     break
-                elif guard==0 and update==0:
-                    continue
-                else:
-                    break
+                #elif guard==0 and update==0:
+                 #   continue
+                #else:
+                 #   break
 #-------------------------------------------------------------------------------------
             k += 1
 
@@ -222,13 +224,16 @@ cdef Model create_model(
                 constr_file.append(b'z <= 1\n')
     #4.12 new add ------------------------------------------------------------------------           
     print('add recognise constraints...')
-    cdef pair[int,vector[pair[int,int]]]dist_path
+    #cdef pair[int,vector[pair[int,int]]]dist_path
+    cdef pair[int,int] index_path
     for packet_class_dist in recognise:
-        for dist_path in packet_class_dist:
-            for path_index in dist_path.second:
-                constr_file.append(model_var[path_index.first][path_index.second])
-                constr_file.append(b' + ')
-            constr_file.append(b'z = 1\n')
+        for index_path in packet_class_dist.second:
+           # for path_index in dist_path.second:
+            constr_file.append(model_var[index_path.first][index_path.second])
+            constr_file.append(b' + ')
+            print('ooooooooooooooooooooooooooooooooooooooooooo')
+            print(model_var[index_path.first][index_path.second])
+        constr_file.append(b'z = 0\n')
 #----------------------------------------------------------------------------------------
     print('add require constraints...')
     cdef float amount
