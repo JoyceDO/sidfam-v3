@@ -96,10 +96,10 @@ cdef Model create_model(
 
     #4.12 new add----------------------------------------------------------------------------------
     #对于所有需识别其他字段的packet class的流，确保其路径是从所有首先经过P4交换机的路径中选出来的
-    cdef unordered_map[ #packet class
-        int,
-        vector[pair[int,int]],#path graph & path
-    ] recognise
+    #cdef unordered_map[ #packet class
+     #   int,
+      #  vector[pair[int,int]],#path graph & path
+    #] recognise
     #recognise.resize(packet_class_count)
     #-----------------------------------------------------------------------------------------------
 
@@ -252,18 +252,18 @@ cdef Model create_model(
 
                     res_index += 1
            #4.12 new add----------------------------------------------------------
-            for w in range (1,path_length):
-                previous_node_index = path.at(w - 1)
-                node_index = path.at(w)
-                current_hop = graph.node_list.at(previous_node_index).next_hop
-                guard = graph.node_list.at(node_index).guard
-                update = graph.node_list.at(node_index).update
+           # for w in range (1,path_length):
+            #    previous_node_index = path.at(w - 1)
+             #   node_index = path.at(w)
+              #  current_hop = graph.node_list.at(previous_node_index).next_hop
+               # guard = graph.node_list.at(node_index).guard
+                #update = graph.node_list.at(node_index).update
                 #这里将风筝拓扑中的交换机B写死为P4交换机
-                if current_hop==2:
-                    print('jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj')
-                    print(graph.node_list.at(node_index).next_hop)
-                    recognise[packet_class].push_back(dist_var)
-                    break
+                #if current_hop==2:
+                 #   print('jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj')
+                  #  print(graph.node_list.at(node_index).next_hop)
+                   # recognise[packet_class].push_back(dist_var)
+                    #break
                 #elif guard==0 and update==0:
                  #   continue
                 #else:
@@ -328,17 +328,17 @@ cdef Model create_model(
                     constr_file.append(b' + ')
                 constr_file.append(b'z <= 1\n')
     #4.12 new add ------------------------------------------------------------------------
-    print('add recognise constraints...')
+    #print('add recognise constraints...')
     #cdef pair[int,vector[pair[int,int]]]dist_path
-    cdef pair[int,int] index_path
-    for packet_class_dist in recognise:
-        for index_path in packet_class_dist.second:
-           # for path_index in dist_path.second:
-            constr_file.append(model_var[index_path.first][index_path.second])
-            constr_file.append(b' + ')
-            print('ooooooooooooooooooooooooooooooooooooooooooo')
-            print(model_var[index_path.first][index_path.second])
-        constr_file.append(b'z = 0\n')
+    #cdef pair[int,int] index_path
+    #for packet_class_dist in recognise:
+     #   for index_path in packet_class_dist.second:
+           #for path_index in dist_path.second:
+      #      constr_file.append(model_var[index_path.first][index_path.second])
+       #     constr_file.append(b' + ')
+        #    print('ooooooooooooooooooooooooooooooooooooooooooo')
+         #   print(model_var[index_path.first][index_path.second])
+        #constr_file.append(b'z = 0\n')
 #----------------------------------------------------------------------------------------
             # 总结一下。假设这个二层小字典里的内容是
             #   {<un1>: [x0, x1, x2], <un2>: [x3, x4], <un3>: [x5, x6, x7, x8]}

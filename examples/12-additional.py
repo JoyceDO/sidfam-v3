@@ -1,4 +1,8 @@
-#
+import sys
+import os
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = os.path.split(curPath)[0]
+sys.path.append(rootPath)#
 import sys
 import os
 from sidfam import Automaton, AutoGroup
@@ -12,7 +16,6 @@ print_time('program start: ')
 
 topo, bandwidth_resource, packet_class_list, bandwidth_require = \
     from_dataset(Path(argv[1]))
-
 num_pkt = Variable()
 bandwidth = Resource(shared=True)
 guard_list = [

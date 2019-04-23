@@ -303,7 +303,7 @@ class Rule:
         for i, graph_var in enumerate(var_map):
             packet_class = splited.auto_group.c_auto_group.automaton_list.at(i).packet_class
             graph = splited.auto_group.c_auto_group.path_graph_list.at(i)
-            graph_var_val = [model.getVarByName(v) for v in graph_var]
+            graph_var_val = [model.getVarByName(v).x for v in graph_var]
             assert sum(graph_var_val) == 1
             selected_path_index = graph_var_val.index(1)
             selected_path = graph.path_list.at(selected_path_index)
