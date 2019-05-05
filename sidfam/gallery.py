@@ -40,6 +40,8 @@ def _from_dataset_topo(dateset_path):
             elif line.startswith('link'):
                 line_type = 'link'
                 continue
+            elif line.startswith('switch_class'):
+                break;
 
             assert line_type is not None
             if line_type == 'link':
@@ -63,10 +65,24 @@ def _from_dataset_topo(dateset_path):
                     connected_switch[host] = switch
     # topo = Topo(topo_map)
     return topo_map, connected_switch, bandwidth_res
-
+def _from_dataset_switch_class(dateset_path):
+    with open(dateset_path / 'topo.txt') as topo_file:
+        i=1
+        line_type=None
+        switch_class={}
+        for line in topo_file:
+            if line.startswith('switch_class'):
+                line_type=('switch_class')
+                continue
+            #assert line_type is not None
+            if line_type==('switch_class'):
+                items=line.split()
+                switch,switchclass=int(items[0])+1,int(items[1])
+                switch_class[switch]=switchclass
+    return switch_class
 def from_dataset(dateset_path):
     graph, connected_switch, bandwidth_res = _from_dataset_topo(dateset_path)
-
+    switch_class=_from_dataset_switch_class(dateset_path)
     packet_class_list = []
     shortest_path_length_map = {}
     bandwidth_req = {}
@@ -87,7 +103,7 @@ def from_dataset(dateset_path):
 
     topo = Topo(graph, shortest_path_length_map)
     # topo = Topo(graph)
-    return topo, bandwidth_res, packet_class_list, bandwidth_req
+    return topo, bandwidth_res, packet_class_list, bandwidth_req, switch_class
 
 
 now = time()

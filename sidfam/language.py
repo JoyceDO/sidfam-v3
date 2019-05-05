@@ -11,7 +11,14 @@ class PacketClass:
 
     def endpoints(self):
         return self._src_switch, self._dst_switch
-
+class AddInfo:
+    def __init__(self, switch_class, recognise, state_class, guard_list, update_list,target_flow):
+        self._switch_class=switch_class
+        self._recognise=recognise
+        self._state_class=state_class
+        self._guard_list=guard_list
+        self._update_list=update_list
+        self._target_flow=target_flow
 
 class IPConstr:
     def __and__(self, other):
