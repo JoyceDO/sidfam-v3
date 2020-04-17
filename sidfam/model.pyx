@@ -99,28 +99,15 @@ cdef Model create_model(
     cdef unordered_map[
         int,
         vector[pair[int,int]]
-    ] p4_rec_target_flow
+    ] correct_path
 
     cdef unordered_map[
         int,
         vector[pair[int,int]]
-    ] p4_rec_other_flow
+    ] un_correct_path
 
-    cdef unordered_map[
-        int,
-        vector[pair[int,int]]
-    ] targetstate_place
-    #4.12 new add----------------------------------------------------------------------------------
-    #对于所有需识别其他字段的packet class的流，确保其路径是从所有首先经过P4交换机的路径中选出来的
-    #cdef unordered_map[ #packet class
-     #   int,
-      #  vector[pair[int,int]],#path graph & path
-    #] recognise
-    #recognise.resize(packet_class_count)
-    #-----------------------------------------------------------------------------------------------
-
-    cdef int i, path_index, j, node_index, previous_node_index, k, targetflow_has_solution, otherflow_has_solution
-    cdef int targetstate_has_solution, is_target_flow
+    cdef int i, path_index, j, node_index, previous_node_index, k
+    cdef int is_target_flow, correct, has_p4_before
     cdef int res_index
     cdef float need
     cdef int current_hop, guard, update, next_hop, req
@@ -145,22 +132,12 @@ cdef Model create_model(
     c_model.problem = b''
     # for graph_path in model_path:
     # print(model_path)
-    targetflow_has_solution=1
-    otherflow_has_solution=0
-    targetstate_has_solution=0
     #targetflow_needs_targetstate=0
-    is_target_flow=0
+
     # 最外层的for循环对所有的path graph进行遍历
     for i in range(graph_count):
-        constr_file.append(b'  ')
-        targetflow_has_solution=1
-        #if extra._recognise==-2:
-         #   otherflow_has_solution=1
-        #else:
-            #otherflow_has_solution=0
-        targetstate_has_solution=0
-        #targetflow_needs_targetstate=0
         is_target_flow=0
+        constr_file.append(b'  ')
         # 如果某一个graph里根本就没有path，那么就不用往下求了肯定无解了。这不是什么严重的问题，
         # 毕竟整个这个函数都这是对一个子问题进行操作，一个不行了还有千千万万个等着。
         if model_path[i].size() == 0:
@@ -181,8 +158,8 @@ cdef Model create_model(
             var_row_length = CUT_OFF
         else:
             cut_model_path[i] = model_path[i]
-        print('ttttttttttttttttttttttttttttthe number of path')
-        print(var_row_length)
+        #print('ttttttttttttttttttttttttttttthe number of path')
+        #print(var_row_length)
 
         # 所有path对应的0-1变量都存在model_var当中。model_var[i][v]就是第i个graph中的
         # 第v条path所对应的变量。
@@ -210,21 +187,19 @@ cdef Model create_model(
         # 以下下一段注释以上的代码复制粘贴一下就好了。教人复制粘贴是非常不好的，但是我千算万算
         # 也没想到sidfam居然会以这种方式被拓展……
         packet_class = group.automaton_list.at(i).packet_class
-        print('ssssssssssssssssssssssssssssssssssssshow the packet class')
-        print(packet_class)
+        #print('ssssssssssssssssssssssssssssssssssssshow the packet class')
+       # print(packet_class)
         graph = group.path_graph_list.at(i)
         k = 0
         if packet_class==extra._target_flow:
             is_target_flow=1
-        if is_target_flow==0 and extra._recognise==0:
-            otherflow_has_solution=1
-
-        #has_solution=1
         # for path_index in graph_path:
         for path_index in cut_model_path[i]:
-            print('------------------------------------------------------------------')
+           # print('------------------------------------------------------------------')
             path = &graph.path_list.at(path_index)
             path_length = path.size()
+            correct=1
+            has_p4_before=0
             for j in range(1, path_length):
                 previous_node_index=path.at(j-1)
                 node_index=path.at(j)
@@ -233,71 +208,6 @@ cdef Model create_model(
                 update=graph.node_list.at(node_index).update
                 guard_states=extra._guard_list[guard].dep
                 update_states=extra._update_list[update].dep
-                if guard!=0:
-                    #targetflow_needs_targetstate=1
-                    if extra._recognise==1:
-                        if extra._switch_class[current_hop]!=2:
-                            targetflow_has_solution=0
-                    #if extra._switch_class(extra._guard_list[guard]
-                    for state in guard_states:
-                        if extra._state_class[state]==1 and extra._switch_class[current_hop]==2:
-                            targetstate_has_solution=1
-                            #print('hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh')
-                        elif extra._state_class[state]==1:
-                            targetstate_has_solution=0
-                            break
-                        elif extra._state_class[state]==0 and extra._switch_class[current_hop]!=0:
-                            targetstate_has_solution=1
-                            #print('hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh')
-                            #print(current_hop)
-                            #print(extra._switch_class[current_hop])
-                            #print(guard)
-                            #print('hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh')
-                        else:
-                            targetstate_has_solution=0
-                            break
-                    if update!=0:
-                        if update_states.issubset(extra._guard_list[guard].dep)==0:
-                            for state in update_states:
-                                if extra._state_class[state]==1 and extra._switch_class[current_hop]!=2:
-                                    targetstate_has_solution=0
-                                elif extra._state_class[state]==0 and extra._switch_class[current_hop]==0:
-                                    targetstate_has_solution=0
-                elif update!=0 and  targetstate_has_solution==1:
-                    for state in update_states:
-                        if extra._state_class[state]==1 and extra._switch_class[current_hop]==2:
-                            targetstate_has_solution=1
-                        elif extra._state_class[state]==0 and extra._switch_class[current_hop]!=0:
-                            targetstate_has_solution=1
-                        else:
-                            targetstate_has_solution=0
-                            break
-
-
-
-            #print(path_length)
-            #if str(path_length)==str(3):
-             #   continue;
-            for j in range(1, path_length):
-                previous_node_index = path.at(j - 1)
-                node_index = path.at(j)
-                current_hop = graph.node_list.at(previous_node_index).next_hop
-                guard = graph.node_list.at(node_index).guard
-                update = graph.node_list.at(node_index).update
-                next_hop = graph.node_list.at(node_index).next_hop
-                print('current_hop')
-                print(current_hop)
-                print('guard')
-                print(guard)
-                print('update')
-                print(update)
-                #print(' ')
-                #for depstate in extra._guard_list[guard].dep:
-                 #   if extra._state_class[depstate]==1:
-                  #      print('xixixixixixixxixixixixixixixixiixxi')
-                   #     print(extra._guard_list[guard])
-                    #    print('xixixixixixixixixixixixixixixixixiix')
-
 
                 # ……到此为止。这一段代码之后，我们可以使用这些变量：
                 # 目前我们正在遍历的是第i个graph中的第k条路的第j个节点（不要吐槽顺序……）。
@@ -324,9 +234,6 @@ cdef Model create_model(
                         vector[pair[int, int]]()
                 # 把值加入字典中合适的位置。
                 distinguish[current_hop][dist_key][dist_action].push_back(dist_var)
-
-
-
 
                 # 至此我们要构造的dtg约束就很明显了：在同一个交换机下（第一层键），对于同一个
                 # 出发地/目的地和guard（第二层键），最多只能有一种update & next_hop（第三层键）
@@ -357,71 +264,36 @@ cdef Model create_model(
                     require[res_index][req_key][packet_class][req_var] = need
 
                     res_index += 1
-           # for j in range (1,path_length):
-            #    previous_node_index=path.at(j-1)
-             #   current_hop=graph.node_list.at(previous_node_index).next_hop
-              #  node_index=path.at(j)
-               # next_hop=graph.node_list.at(node_index).next_hop
-                #if current_hop==1:
-                 #   p4_rec_target_flow[packet_class].push_back(dist_var)
-                  #  print('00000000000000000000000000000000000000000000000000')
-                   # print(current_hop)
-                    #print(next_hop)
-                    #break
-            #print('***********************************************')
-            #print(is_target_flow)
-            #print(targetstate_has_solution)
-            #print('************************************************')
-            if is_target_flow==1 and targetstate_has_solution==1:
-                print('there is a suitable path for target flow that needs the stateeeeeeeeeeeeeeeeeeeeeeeeee')
-                targetstate_place[packet_class].push_back(dist_var)
-            if extra._recognise==0:
-                continue
-            elif is_target_flow==0:
-
-                for j in range (1, path_length):
-                    previous_node_index=path.at(j-1)
-                    current_hop=graph.node_list.at(previous_node_index).next_hop
-                    if(extra._switch_class[current_hop]==2):
-                        print('there is a path for p4 rec other flowwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww')
-                        p4_rec_other_flow[packet_class].push_back(dist_var)
-                        otherflow_has_solution=1
-                        break
-                        
-            elif is_target_flow==1 and targetflow_has_solution==1:
-                for j in range (1, path_length):
-                    previous_node_index=path.at(j-1)
-                    node_index=path.at(j)
-                    current_hop=graph.node_list.at(previous_node_index).next_hop
-                    guard=graph.node_list.at(node_index).guard
-                    next_hop=graph.node_list.at(node_index).next_hop
-                    if extra._switch_class[current_hop]==2 and guard !=0:
-                        print('there is a p4 rec target flowwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww')
-        
-                        p4_rec_target_flow[packet_class].push_back(dist_var)
-                        break
-            #print('ppppppppppppppppppppppppppppppppppppppppppppppppp')
-            #print(is_target_flow)
-            #print(targetstate_has_solution)
-            #print('ppppppppppppppppppppppppppppppppppppppppppppppppp')
-            #if is_target_flow==1 and targetstate_has_solution==1:
-                #print('there is a suitable path for targetflow that needs the stateeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
-                #targetstate_place[packet_class].push_back(dist_var)
-
-
-           
+                if extra._switch_class[current_hop]==2:
+                    has_p4_before=1
+                if guard!=0:
+                    for state in guard_states:
+                        if extra._state_class[state]==1 and extra._switch_class[current_hop]!=2:
+                            correct=0
+                        if extra._state_class[state]==0 and extra._switch_class[current_hop]==0:
+                            correct=0
+                    if extra._recognise==1 and has_p4_before==0:
+                            correct=0
+                if update!=0:
+                    if update_states.issubset(extra._guard_list[guard].dep)==0:
+                        for state in guard_states:
+                            if extra._state_class[state]==1 and extra._switch_class[current_hop]!=2:
+                                correct=0
+                            if extra._state_class[state]==0 and extra._switch_class[current_hop]==0:
+                                correct=0
+            if correct==0:
+                un_correct_path[packet_class].push_back(dist_var)
+            elif correct==1:
+                if extra._recognise==1:
+                    if is_target_flow==0 and has_p4_before==1:
+                        correct_path[packet_class].push_back(dist_var)
+                    elif is_target_flow==0 and has_p4_before==0:
+                        un_correct_path[packet_class].push_back(dist_var)
+                    else:
+                        correct_path[packet_class].push_back(dist_var)
+                else:
+                    correct_path[packet_class].push_back(dist_var)
             k += 1
-
-
-        if (is_target_flow==1 and targetflow_has_solution==0) or (is_target_flow==0 and otherflow_has_solution==0) or (
-                is_target_flow==1 and targetstate_has_solution==0):
-            print('THIS MODEL THIS PACKETCLASS HAS NO SOLUTION')
-            print(is_target_flow)
-            print(targetflow_has_solution)
-            for v in range(var_row_length):
-                constr_file.append(model_var[i][v])
-                constr_file.append(b' + ')
-            constr_file.append(b'z = 0\n')
         i += 1
     print_time('found a possible problem: ')
     # print(constr_file)
@@ -477,41 +349,20 @@ cdef Model create_model(
                     constr_file.append(b' + ')
                 constr_file.append(b'z <= 1\n')
     #if (targetflow_has_solution==1 or otherflow_has_solution==1) and extra._recognise!=-2:
-    print('add recognise constraint...')
-    for packet_class_dist in p4_rec_other_flow:
-        #print('ccccccccccccccccccccccccccccccccomein')
-        for index_path in packet_class_dist.second:
+
+
+    for packet_class_dist, value in correct_path:
+        for index_path in value:
             constr_file.append(model_var[index_path.first][index_path.second])
             constr_file.append(b' + ')
         constr_file.append(b'z = 1\n')
-    #if extra._recognise!=-1:
-    for packet_class_dist in p4_rec_target_flow:
-        #print('ccccccccccccccccccccccccccomein2')
-        for index_path in packet_class_dist.second:
+
+    for packet_class_dist, value in un_correct_path:
+        for index_path in value:
             constr_file.append(model_var[index_path.first][index_path.second])
             constr_file.append(b' + ')
-        constr_file.append(b'z = 1\n')
-    print('add state constraint...')
-    for packet_class_dist in targetstate_place:
-        #print('1111111111111111111111111111111111111111')
-        for index_path in packet_class_dist.second:
-            print('11111111111111111111111111111111111111111111111111')
-            constr_file.append(model_var[index_path.first][index_path.second])
-            constr_file.append(b' + ')
-        constr_file.append(b'z = 1\n')
-    #4.12 new add ------------------------------------------------------------------------
-    #print('add recognise constraints...')
-    #cdef pair[int,vector[pair[int,int]]]dist_path
-    #cdef pair[int,int] index_path
-    #for packet_class_dist in recognise:
-     #   for index_path in packet_class_dist.second:
-           #for path_index in dist_path.second:
-      #      constr_file.append(model_var[index_path.first][index_path.second])
-       #     constr_file.append(b' + ')
-        #    print('ooooooooooooooooooooooooooooooooooooooooooo')
-         #   print(model_var[index_path.first][index_path.second])
-        #constr_file.append(b'z = 0\n')
-#----------------------------------------------------------------------------------------
+        constr_file.append(b'z = 0\n')
+
             # 总结一下。假设这个二层小字典里的内容是
             #   {<un1>: [x0, x1, x2], <un2>: [x3, x4], <un3>: [x5, x6, x7, x8]}
             # 其中uni是某种update & next_hop。这段代码会创建3个（每个键对应一个）中间变量
