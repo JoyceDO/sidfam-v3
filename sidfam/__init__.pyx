@@ -301,29 +301,29 @@ class Rule:
     def __init__(self, SplitedProblem splited, model, var_map, path_map):
         self.packet_class_list = splited.auto_group.packet_class_list
         print('generate rules')
-        print(path_map)
+      #  print(path_map)
         self.switch_action_map = {}
         for i, graph_var in enumerate(var_map):
-            print("sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss")
-            print(i)
-            print(graph_var)
+       #     print("sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss")
+        #    print(i)
+         #   print(graph_var)
             packet_class = splited.auto_group.c_auto_group.automaton_list.at(i).packet_class
             graph = splited.auto_group.c_auto_group.path_graph_list.at(i)
             graph_var_val = [model.getVarByName(v).x for v in graph_var]
-            print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-            print(graph_var_val)
+          #  print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+           # print(graph_var_val)
             assert sum(graph_var_val) == 1
             selected_path_index_in_pathmap = graph_var_val.index(1)
             selected_path_index=path_map[i][selected_path_index_in_pathmap]
             selected_path = graph.path_list.at(selected_path_index)
             path_length=selected_path.size()
-            print("1111111111111111111111111111111111111111111111111111111111")
-            print(selected_path_index)
-            length=graph.path_list.size()
-            print("222222222222222222222222222222222222222222222222222222222222")
-            for j in range(0,length):
-                print(graph.path_list.at(j))
-                print("   ")
+            #print("1111111111111111111111111111111111111111111111111111111111")
+            #print(selected_path_index)
+            #length=graph.path_list.size()
+            #print("222222222222222222222222222222222222222222222222222222222222")
+            #for j in range(0,length):
+             #   print(graph.path_list.at(j))
+              #  print("   ")
             for j,node in enumerate(selected_path):
                 if j == 0:
                     continue
@@ -339,11 +339,11 @@ class Rule:
                 # require = real_node.require
                 next_switch = real_node.next_hop
 
-                if guard!=0:
-                    print("This issssssssssssssssssssssssss the final rule")
+               # if guard!=0:
+                #    print("This issssssssssssssssssssssssss the final rule")
                   #  print(pre_switch)
-                    print(current_switch)
-                    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                 #   print(current_switch)
+                  #  print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
                 if current_switch not in self.switch_action_map:
                     self.switch_action_map[current_switch] = {}
