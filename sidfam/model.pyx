@@ -195,8 +195,10 @@ cdef Model create_model(
             is_target_flow=1
         # for path_index in graph_path:
         for path_index in cut_model_path[i]:
-           # print('------------------------------------------------------------------')
+            print('    ------------------------------------------------------------------')
             path = &graph.path_list.at(path_index)
+            path1=graph.path_list.at(path_index)
+            print(path1)
             path_length = path.size()
             correct=1
             has_p4_before=0
@@ -208,6 +210,7 @@ cdef Model create_model(
                 update=graph.node_list.at(node_index).update
                 guard_states=extra._guard_list[guard].dep
                 update_states=extra._update_list[update].dep
+                next_hop=graph.node_list.at(node_index).next_hop
 
                 # ……到此为止。这一段代码之后，我们可以使用这些变量：
                 # 目前我们正在遍历的是第i个graph中的第k条路的第j个节点（不要吐槽顺序……）。
@@ -269,6 +272,10 @@ cdef Model create_model(
                 if guard!=0:
                     for state in guard_states:
                         if extra._state_class[state]==1 and extra._switch_class[current_hop]!=2:
+                            print('----------------------------------------------')
+                            print(state)
+                            print(current_hop)
+                            print(model_var[i][k])
                             correct=0
                         if extra._state_class[state]==0 and extra._switch_class[current_hop]==0:
                             correct=0
@@ -276,7 +283,7 @@ cdef Model create_model(
                             correct=0
                 if update!=0:
                     if update_states.issubset(extra._guard_list[guard].dep)==0:
-                        for state in guard_states:
+                        for state in update_states:
                             if extra._state_class[state]==1 and extra._switch_class[current_hop]!=2:
                                 correct=0
                             if extra._state_class[state]==0 and extra._switch_class[current_hop]==0:
@@ -290,9 +297,17 @@ cdef Model create_model(
                     elif is_target_flow==0 and has_p4_before==0:
                         un_correct_path[packet_class].push_back(dist_var)
                     else:
+                        print("lailailailailailailailailai")
+                        for j in range(1,path_length):
+                            node_index=path.at(j)
+                            print(node_index)
                         correct_path[packet_class].push_back(dist_var)
                 else:
                     correct_path[packet_class].push_back(dist_var)
+            print("拉拉拉了")
+            for j in range(1,path_length):
+                node_index=path.at(j)
+                print(node_index)
             k += 1
         i += 1
     print_time('found a possible problem: ')
@@ -349,16 +364,17 @@ cdef Model create_model(
                     constr_file.append(b' + ')
                 constr_file.append(b'z <= 1\n')
     #if (targetflow_has_solution==1 or otherflow_has_solution==1) and extra._recognise!=-2:
-
-
-    for packet_class_dist, value in correct_path:
-        for index_path in value:
+    
+    print("now checkkkkkkkkkkkkkkkkkkkkkkkkk the fangcheng")
+    for packet_class_dist in correct_path:
+        for index_path in packet_class_dist.second:
             constr_file.append(model_var[index_path.first][index_path.second])
             constr_file.append(b' + ')
         constr_file.append(b'z = 1\n')
 
-    for packet_class_dist, value in un_correct_path:
-        for index_path in value:
+    for packet_class_dist in un_correct_path:
+        for index_path in packet_class_dist.second:
+            print(model_var[index_path.first][index_path.second])
             constr_file.append(model_var[index_path.first][index_path.second])
             constr_file.append(b' + ')
         constr_file.append(b'z = 0\n')
